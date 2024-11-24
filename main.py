@@ -90,3 +90,25 @@ with st.sidebar:
             vector_store = FAISS.from_texts(chunks, embedding=embeddings)
             vector_store.save_local("faiss_index")
             st.success("PDF(s) processed successfully!")
+st.markdown(
+    """
+    <style>
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 14px;
+            border-top: 1px solid #e9ecef;
+        }
+    </style>
+    <footer>
+        Developed by <b>Numan Abubakar</b> | © 2024 All Rights Reserved
+    </footer>
+    """,
+    unsafe_allow_html=True,
+)
