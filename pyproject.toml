@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "talktopdf"
+version = "0.1.0"
+description = "now you can talk with your pdf"
+authors = ["numanabubakar <numanabubakar99@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+streamlit = "^1.40.1"
+pypdf2 = "^3.0.1"
+langchain = "^0.3.7"
+langchain-community = "^0.3.7"
+langchain-core = "^0.3.19"
+python-dotenv = "^1.0.1"
+langchain-google-genai = "^2.0.5"
+langchain-huggingface = "^0.1.2"
+faiss-cpu = "^1.9.0.post1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
