@@ -57,18 +57,24 @@ user_question = st.text_input(
 if st.button("Ask"):
 
     if user_question:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-        docs = db.similarity_search(user_question)
+        with st.spinner("PDF is typing..."):
+            status_placeholder = st.empty()
 
-        prompt_template = """
-        Answer the question using the provided context. If not available, respond with "Answer not found in the context."\n\nContext:\n{context}\nQuestion:\n{question}\n\nAnswer:
-        """
-        model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
-        prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-        chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
-        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-        st.markdown(f"### Answer:\n{response['output_text']}")
+            embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+            db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+            docs = db.similarity_search(user_question)
+
+            prompt_template = """
+            Answer the question using the provided context. If not available, respond with "Answer not found in the context."\n\nContext:\n{context}\nQuestion:\n{question}\n\nAnswer:
+            """
+            model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+            prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+            chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+            status_placeholder.empty()
+            response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+            st.markdown(f"### Answer:\n{response['output_text']}")
+    else:
+        st.warning("Please enter a question before submitting!")
 
 with st.sidebar:
    
