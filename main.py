@@ -52,7 +52,7 @@ st.markdown(
 st.markdown('<div class="main-header">Talk To Your PDF</div>', unsafe_allow_html=True)
 
 user_question = st.text_input(
-    "What do you want to know from your PDF?", placeholder="Type your question here...", key="user_question"
+    "What do you want to ask from your PDF?", placeholder="Type your question here...", key="user_question"
 )
 if st.button("Ask"):
 
@@ -98,12 +98,11 @@ st.markdown(
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #f8f9fa;
-            color: #6c757d;
+            color: #fff;
             text-align: center;
             padding: 10px 0;
             font-size: 14px;
-            border-top: 1px solid #e9ecef;
+            # border-top: 1px solid #e9ecef;
         }
     </style>
     <footer>
