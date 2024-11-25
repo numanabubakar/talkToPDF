@@ -104,7 +104,7 @@ st.markdown(
             bottom: 0;
             left: 0;
             width: 100%;
-            color: #fff;
+            color: #808080;
             text-align: center;
             padding: 10px 0;
             font-size: 14px;
