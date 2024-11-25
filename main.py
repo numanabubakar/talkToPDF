@@ -13,15 +13,10 @@ from dotenv import load_dotenv
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Configure page with custom theme
-st.set_page_config(
-    page_title="PDF Talking",
-    page_icon="📚",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# Configure page
+st.set_page_config(page_title="PDF Talking", page_icon="📚", layout="wide")
 
-# Custom header with a new title and style
+# Custom header
 st.markdown(
     """
     <style>
@@ -32,17 +27,50 @@ st.markdown(
             text-align: center;
             margin-bottom: 20px;
         }
-        .sidebar-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: #333;
+        .chat-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column-reverse; /* Show latest messages at the bottom */
         }
-        .custom-input {
-            font-size: 18px;
-            margin-top: 15px;
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            line-height: 1.5;
         }
-        .button-container {
-            margin-top: 20px;
+        .user-message {
+            background-color: #e6f4ff;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            text-align: left;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .input-box {
+            flex: 1;
+        }
+        .send-button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .send-button:hover {
+            background-color: #1558b3;
         }
     </style>
     """,
@@ -51,38 +79,15 @@ st.markdown(
 
 st.markdown('<div class="main-header">Talk To Your PDF</div>', unsafe_allow_html=True)
 
-user_question = st.text_input(
-    "What do you want to ask from your PDF?", placeholder="Type your question here...", key="user_question"
-)
-if st.button("Ask"):
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    if user_question:
-        with st.spinner("PDF is typing..."):
-            status_placeholder = st.empty()
-
-            embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-            db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-            docs = db.similarity_search(user_question)
-
-            prompt_template = """
-            Answer the question using the provided context. If not available, respond with "Answer not found in the context."\n\nContext:\n{context}\nQuestion:\n{question}\n\nAnswer:
-            """
-            model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
-            prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-            chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
-            status_placeholder.empty()
-            response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-            st.markdown(f"### Answer:\n{response['output_text']}")
-    else:
-        st.warning("Please enter a question before submitting!")
-
+# Sidebar for PDF upload
 with st.sidebar:
-   
-    pdf_docs = st.file_uploader(
-        "Upload one or more PDFs for processing:", type=["pdf"], accept_multiple_files=True
-    )
-    if st.button("Process PDF(s)"):
-        with st.spinner("Extracting and processing text..."):
+    pdf_docs = st.file_uploader("Upload PDFs:", type=["pdf"], accept_multiple_files=True)
+    if st.button("Process PDFs"):
+        with st.spinner("Processing PDFs..."):
             text = ""
             for pdf in pdf_docs:
                 reader = PdfReader(pdf)
@@ -96,6 +101,67 @@ with st.sidebar:
             vector_store = FAISS.from_texts(chunks, embedding=embeddings)
             vector_store.save_local("faiss_index")
             st.success("PDF(s) processed successfully!")
+
+# Function to handle sending user input
+def handle_send():
+    if st.session_state.user_input.strip():
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": st.session_state.user_input})
+
+        # Process bot response
+        with st.spinner("PDF is Typing..."):
+            try:
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+                db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+                docs = db.similarity_search(st.session_state.user_input,k=4)
+
+                prompt_template = """
+              Use the context provided below to answer the question comprehensively, while also leveraging any     relevant general knowledge you have. 
+                If the context does not have sufficient information, try to provide a helpful, general response to the question, but clearly mention 
+            that the response goes beyond the document's conten."\n\nContext:\n{context}\nQuestion:\n{question}\n\nAnswer:
+                """
+                model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+                prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+                chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+                response = chain({"input_documents": docs, "question": st.session_state.user_input}, return_only_outputs=True)
+
+                # Add bot response to chat history
+                st.session_state.messages.append({"role": "bot", "content": response['output_text']})
+            except Exception as e:
+                st.session_state.messages.append({"role": "bot", "content": "Error: Could not process your question."})
+
+        # Clear the input box
+        st.session_state.user_input = ""
+
+# Display chat history container
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+for message in (st.session_state.messages): 
+    if message["role"] == "user":
+        st.markdown(
+            f'<div class="message user-message"><b>You:</b> {message["content"]}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div class="message bot-message"><b>Your PDF:</b> {message["content"]}</div>',
+            unsafe_allow_html=True,
+        )
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Input container at the bottom
+st.markdown('<div class="input-container">', unsafe_allow_html=True)
+st.text_input(
+    "",
+    key="user_input",
+    placeholder="Ask something about your PDF...",
+    label_visibility="collapsed",  # Hide the label
+    on_change=handle_send,
+    help="Type your question here.",
+)
+st.button("Send", on_click=handle_send, type="primary")
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Footer
 st.markdown(
     """
     <style>
@@ -108,7 +174,6 @@ st.markdown(
             text-align: center;
             padding: 10px 0;
             font-size: 14px;
-            # border-top: 1px solid #e9ecef;
         }
     </style>
     <footer>
