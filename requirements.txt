@@ -8,4 +8,3 @@ python-dotenv
 faiss-cpu
 google-generativeai
 streamlit
-beautifulsoup4
