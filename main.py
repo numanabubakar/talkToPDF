@@ -6,6 +6,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain.chains.question_answering import load_qa_chain
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 # Load environment variables
 load_dotenv()
@@ -13,7 +16,13 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:3000"] for specific
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Schema matching your frontend request
 class ChatRequest(BaseModel):
     message: str
@@ -50,7 +59,7 @@ def chat_endpoint(req: ChatRequest):
 
         # Ask the chain
         response = chain.invoke({"input_documents": docs, "question": req.message}, return_only_outputs=True)
-
+        print(response)
         return {
             "userId": req.userId,
             "message": req.message,
